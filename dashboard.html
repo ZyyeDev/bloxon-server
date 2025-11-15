@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Server Dashboard</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: #1a1a1a;
+            padding: 40px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .login-container h1 {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .login-container input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .login-container button {
+            width: 100%;
+            padding: 12px;
+            background: #0066cc;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .login-container button:hover {
+            background: #0052a3;
+        }
+        .error {
+            color: #ef4444;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            display: none;
+        }
+        .header {
+            background: #222;
+            border-bottom: 1px solid #333;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .header-left h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        .header-left p {
+            color: #999;
+            font-size: 0.9rem;
+        }
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #444; }
+        .btn.danger { background: #dc3545; border-color: #dc3545; }
+        .btn.danger:hover { background: #c82333; }
+        .btn.success { background: #28a745; border-color: #28a745; }
+        .btn.success:hover { background: #218838; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            border-bottom: 1px solid #333;
+        }
+        .stat {
+            padding: 20px;
+            text-align: center;
+            border-right: 1px solid #333;
+        }
+        .stat:last-child { border-right: none; }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        .stat-label {
+            color: #999;
+            font-size: 0.8rem;
+        }
+        .content {
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1a1a1a;
+            margin-bottom: 10px;
+        }
+        th {
+            background: #2a2a2a;
+            color: #fff;
+            padding: 12px;
+            text-align: left;
+            font-weight: 500;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #333;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #333;
+            font-size: 0.85rem;
+        }
+        tr:hover { background: #252525; }
+        .uid {
+            font-family: monospace;
+            color: #ccc;
+        }
+        .status {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .status.healthy { background: #1e4620; color: #4ade80; }
+        .status.warning { background: #422006; color: #fbbf24; }
+        .status.starting { background: #1e3a8a; color: #60a5fa; }
+        .progress-bar {
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+            height: 6px;
+            margin-top: 4px;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 2px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-content h2 {
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+        .maintenance-badge {
+            background: #dc3545;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .system-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .system-card {
+            background: #222;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        .system-card h3 {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            color: #999;
+        }
+        .system-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .weather-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .weather-tag {
+            background: #333;
+            padding: 6px 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .weather-tag button {
+            background: #dc3545;
+            border: none;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .accessory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .accessory-card {
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .accessory-icon {
+            width: 100%;
+            height: 100px;
+            background: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+        .accessory-info {
+            padding: 12px;
+        }
+        .accessory-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            color: #fff;
+            word-break: break-word;
+        }
+        .accessory-price {
+            color: #4ade80;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+        .accessory-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .accessory-actions button {
+            flex: 1;
+            padding: 6px;
+            font-size: 0.75rem;
+        }
+        .file-input-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .file-input-group label {
+            flex: 1;
+            min-width: 150px;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+        }
+        .notification.success {
+            background: #28a745;
+            border: 1px solid #1e7e34;
+        }
+        .notification.error {
+            background: #dc3545;
+            border: 1px solid #bd2130;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container" id="loginContainer">
+        <h1>Dashboard Login</h1>
+        <div class="error" id="loginError"></div>
+        <input type="password" id="passwordInput" placeholder="Enter password"/>
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div class="container" id="dashboardContainer">
+        <div class="header">
+            <div class="header-left">
+                <h1>Server Dashboard</h1>
+            </div>
+            <div class="header-controls">
+                <span id="maintenanceBadge" style="display:none;" class="maintenance-badge">MAINTENANCE MODE</span>
+                <button class="btn" onclick="refreshData()">Refresh</button>
+                <button class="btn success" onclick="showMessageModal()">Send Global Message</button>
+                <button class="btn" onclick="showCreditCurrencyModal()">Give Currency</button>
+                <button class="btn danger" id="maintenanceBtn" onclick="toggleMaintenance()">Enable Maintenance</button>
+                <button class="btn" onclick="showBinaryUploadModal()">Upload Binary</button>
+                <button class="btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="stats" id="statsContainer">
+            <div class="stat">
+                <div class="stat-value" id="totalServers">0</div>
+                <div class="stat-label">Active Servers</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="totalPlayers">0</div>
+                <div class="stat-label">Online Players</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="totalUsers">0</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2 class="section-title">System Resources</h2>
+                <div class="system-stats" id="systemStats"></div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">
+                    Weather Types
+                    <button class="btn" onclick="showWeatherModal()">Add Weather</button>
+                </h2>
+                <div class="weather-list" id="weatherList"></div>
+            </div>
+
+            <br>
+
+            <div class="section">
+                <h2 class="section-title">
+                    Accessories
+                    <button class="btn success" onclick="showAddAccessoryModal()">Add Accessory</button>
+                </h2>
+                <div class="accessory-grid" id="accessoryGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="creditCurrencyModal">
+        <div class="modal-content">
+            <h2>Give Currency to User</h2>
+            <div class="form-group">
+                <label>User ID</label>
+                <input type="number" id="creditUserId" placeholder="Enter user ID" min="1"/>
+            </div>
+            <div class="form-group">
+                <label>Amount</label>
+                <input type="number" id="creditAmount" placeholder="Amount to give" min="1"/>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeCreditCurrencyModal()">Cancel</button>
+                <button class="btn success" onclick="giveCurrency()">Give Currency</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="messageModal">
+        <div class="modal-content">
+            <h2>Send Global Message</h2>
+            <div class="form-group">
+                <label>Message Type</label>
+                <select id="messageType" onchange="updateMessageForm()">
+                    <option value="Message">Message</option>
+                    <option value="GlobalWeather">Global Weather</option>
+                </select>
+            </div>
+            <div id="messageFormFields"></div>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeMessageModal()">Cancel</button>
+                <button class="btn success" onclick="sendGlobalMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="weatherModal">
+        <div class="modal-content">
+            <h2>Add Weather Type</h2>
+            <div class="form-group">
+                <label>Weather Name</label>
+                <input type="text" id="newWeatherName"/>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeWeatherModal()">Cancel</button>
+                <button class="btn success" onclick="addWeather()">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="addAccessoryModal">
+        <div class="modal-content">
+            <h2>Add Accessory</h2>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="accessoryName" placeholder="Accessory name"/>
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <input type="text" id="accessoryType" placeholder="hat, shirt"/>
+            </div>
+            <div class="form-group">
+                <label>Price</label>
+                <input type="number" id="accessoryPrice" placeholder="Price in blips" min="0"/>
+            </div>
+            <div class="form-group">
+                <label>Equip Slot</label>
+                <input type="text" id="accessorySlot" placeholder="head, torso"/>
+            </div>
+            <div class="form-group">
+                <label>Files</label>
+                <div class="file-input-group">
+                    <label>
+                        Model (required)
+                        <input type="file" id="modelFile" accept=".glb,.gltf,.obj,.fbx" required/>
+                    </label>
+                    <label>
+                        Texture (PNG/JPG)
+                        <input type="file" id="textureFile" accept=".png,.jpg,.jpeg"/>
+                    </label>
+                    <label>
+                        MTL Material
+                        <input type="file" id="mtlFile" accept=".mtl"/>
+                    </label>
+                    <label>
+                        Icon (PNG)
+                        <input type="file" id="iconFile" accept=".png"/>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeAddAccessoryModal()">Cancel</button>
+                <button class="btn success" onclick="uploadAccessory()">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="binaryUploadModal">
+      <div class="modal-content">
+          <h2>Upload Server Binary</h2>
+
+          <div class="form-group">
+              <label>Version</label>
+              <input type="text" id="binaryVersion" placeholder="1.0.0"/>
+          </div>
+
+          <div class="form-group">
+              <label>Binary File (.x86_64)</label>
+              <input type="file" id="binaryFile" accept=".x86_64,.bin"/>
+          </div>
+
+          <div class="modal-buttons">
+              <button class="btn" onclick="closeBinaryUploadModal()">Cancel</button>
+              <button class="btn success" onclick="uploadBinary()">Upload</button>
+          </div>
+          <div id="uploadProgressContainer" style="display:none; width:100%; background:#eee; border-radius:8px; margin-top:10px;">
+              <div id="uploadProgress" style="width:0%; height:10px; border-radius:8px;"></div>
+          </div>
+      </div>
+  </div>
+
+    <script>
+        let sessionToken = null;
+        let maintenanceMode = false;
+        let weatherTypes = [];
+        let accessories = [];
+
+        function showNotification(message, type = 'success'){
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function showCreditCurrencyModal(){
+            document.getElementById('creditCurrencyModal').style.display = 'block';
+        }
+
+        function closeCreditCurrencyModal(){
+            document.getElementById('creditCurrencyModal').style.display = 'none';
+            document.getElementById('creditUserId').value = '';
+            document.getElementById('creditAmount').value = '';
+        }
+
+        async function giveCurrency(){
+            const userId = document.getElementById('creditUserId').value;
+            const amount = document.getElementById('creditAmount').value;
+
+            if (!userId || !amount || amount <= 0){
+                showNotification('Please enter valid user ID and amount', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/dashboard/credit_currency', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_token: sessionToken,
+                        user_id: parseInt(userId),
+                        amount: parseInt(amount)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success){
+                    showNotification(`Successfully gave ${amount} coins to user ${userId}`, 'success');
+                    closeCreditCurrencyModal();
+                } else {
+                    showNotification(data.error?.message || 'Failed to give currency', 'error');
+                }
+            } catch (error){
+                showNotification('Connection error' + error.message, 'error');
+            }
+        }
+
+        async function login(){
+            const password = document.getElementById('passwordInput').value;
+            const errorEl = document.getElementById('loginError');
+
+            try {
+                const response = await fetch('/dashboard/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({password: password})
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success){
+                    sessionToken = data.session_token;
+                    document.getElementById('loginContainer').style.display = 'none';
+                    document.getElementById('dashboardContainer').style.display = 'block';
+                    refreshData();
+                    await loadAccessories();
+                    setInterval(refreshData, 5000);
+                } else {
+                    errorEl.textContent = 'Invalid password';
+                }
+            } catch (error){
+                errorEl.textContent = 'Connection error' + error.message;
+            }
+        }
+
+        function logout(){
+            sessionToken = null;
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('passwordInput').value = '';
+        }
+
+        function showBinaryUploadModal(){
+            document.getElementById('binaryUploadModal').style.display = 'block';
+        }
+
+        function closeBinaryUploadModal(){
+            document.getElementById('binaryUploadModal').style.display = 'none';
+            document.getElementById('binaryVersion').value = '';
+            document.getElementById('binaryFile').value = '';
+        }
+
+        async function uploadBinary(){
+            const version = document.getElementById('binaryVersion').value.trim();
+            const binaryFile = document.getElementById('binaryFile').files[0];
+
+            if (!version || !binaryFile){
+                showNotification('Version and binary file are required.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('session_token', sessionToken);
+            formData.append('version', version);
+            formData.append('binary', binaryFile);
+
+            const xhr = new XMLHttpRequest();
+
+            xhr.open("POST", "/dashboard/upload_binary", true);
+
+            xhr.upload.onprogress = function(event){
+                if (event.lengthComputable){
+                    const percent = (event.loaded / event.total) * 100;
+                    const bar = document.getElementById("uploadProgress");
+                    document.getElementById("uploadProgressContainer").style.display = "block";
+                    bar.style.width = percent + "%";
+                    bar.style.background = `rgb(${255 - percent*2.55}, ${percent*2.55}, 100)`;
+                }
+            };
+
+            xhr.onload = function (){
+                document.getElementById("uploadProgressContainer").style.display = "none";
+
+                if (xhr.status === 200){
+                    showNotification("Binary uploaded successfully!");
+                    closeBinaryUploadModal();
+                    refreshData();
+                } else {
+                    showNotification("Upload failed: " + xhr.responseText);
+                }
+            };
+
+            xhr.onerror = function (){
+                showNotification("Connection error during upload", "error");
+            };
+
+            xhr.send(formData);
+        }
+
+        async function refreshData(){
+            if (!sessionToken) return;
+
+            try {
+                const response = await fetch('/api/dashboard', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({session_token: sessionToken})
+                });
+
+                if (response.status === 401){
+                    logout();
+                    return;
+                }
+
+                const data = await response.json();
+
+                document.getElementById('totalServers').textContent = data.stats.total_servers;
+                document.getElementById('totalPlayers').textContent = data.stats.total_players;
+                document.getElementById('totalUsers').textContent = data.stats.total_users;
+
+                maintenanceMode = data.maintenance;
+                updateMaintenanceUI();
+
+                updateSystemStats(data.system, data.processes);
+
+                weatherTypes = data.weather_types || [];
+                updateWeatherList();
+
+                await loadAccessories();
+
+            } catch (error){
+                console.error('Failed to refresh data:', error);
+            }
+        }
+
+        function updateMaintenanceUI(){
+            const badge = document.getElementById('maintenanceBadge');
+            const btn = document.getElementById('maintenanceBtn');
+
+            if (maintenanceMode){
+                badge.style.display = 'inline-block';
+                btn.textContent = 'Disable Maintenance';
+                btn.classList.remove('danger');
+                btn.classList.add('success');
+            } else {
+                badge.style.display = 'none';
+                btn.textContent = 'Enable Maintenance';
+                btn.classList.remove('success');
+                btn.classList.add('danger');
+            }
+        }
+
+        function updateSystemStats(system, processes){
+            const html = `
+                <div class="system-card">
+                    <h3>CPU Usage</h3>
+                    <div class="system-value">${system.cpu.percent}%</div>
+                    <div class="stat-label">${system.cpu.count} cores</div>
+                </div>
+                <div class="system-card">
+                    <h3>Memory</h3>
+                    <div class="system-value">${system.memory.percent}%</div>
+                    <div class="stat-label">${system.memory.used_mb.toFixed(0)} / ${system.memory.total_mb.toFixed(0)} MB</div>
+                </div>
+                <div class="system-card">
+                    <h3>Disk Usage</h3>
+                    <div class="system-value">${system.disk.percent}%</div>
+                    <div class="stat-label">${system.disk.used_gb.toFixed(1)} / ${system.disk.total_gb.toFixed(1)} GB</div>
+                </div>
+            `;
+            document.getElementById('systemStats').innerHTML = html;
+        }
+
+        function updateWeatherList(){
+            const html = weatherTypes.map(weather => `
+                <div class="weather-tag">
+                    <span>${weather}</span>
+                    <button onclick="removeWeather('${weather}')">×</button>
+                </div>
+            `).join('');
+            document.getElementById('weatherList').innerHTML = html || '<span style="color:#666;">No weather types</span>';
+        }
+
+        async function loadAccessories(){
+            try {
+                const response = await fetch('/dashboard/accessories/list', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({session_token: sessionToken})
+                });
+
+                if (response.ok){
+                    const data = await response.json();
+                    accessories = data.data.items || [];
+                    updateAccessoriesGrid();
+                }
+            } catch (error){
+                console.error('Failed to load accessories:', error);
+            }
+        }
+
+        function updateAccessoriesGrid(){
+            const grid = document.getElementById('accessoryGrid');
+            if (accessories.length === 0){
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 40px;">No accessories</div>';
+                return;
+            }
+
+            grid.innerHTML = accessories.map(acc => `
+                <div class="accessory-card">
+                    <div class="accessory-icon">
+                        ${acc.iconUrl ? `<img src="${acc.iconUrl}" style="width: 100%; height: 100%; object-fit: cover;"/>` : '📦'}
+                    </div>
+                    <div class="accessory-info">
+                        <div class="accessory-name">${acc.name}</div>
+                        <div class="accessory-price">${acc.price} coins</div>
+                        <div class="accessory-actions">
+                            <button class="btn" onclick="editAccessory(${acc.id})" style="flex: 1;">Edit</button>
+                            <button class="btn danger" onclick="deleteAccessory(${acc.id})" style="flex: 1;">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function editAccessory(accessoryId){
+            const accessory = accessories.find(a => a.id === accessoryId);
+            if (!accessory) return;
+
+            document.getElementById('accessoryName').value = accessory.name;
+            document.getElementById('accessoryType').value = accessory.type;
+            document.getElementById('accessoryPrice').value = accessory.price;
+            document.getElementById('accessorySlot').value = accessory.equipSlot;
+
+            document.getElementById('modelFile').removeAttribute('required');
+
+            const modal = document.getElementById('addAccessoryModal');
+            modal.querySelector('h2').textContent = 'Edit Accessory';
+            modal.dataset.editId = accessoryId;
+            modal.style.display = 'block';
+        }
+
+        function showAddAccessoryModal(){
+            document.getElementById('addAccessoryModal').style.display = 'block';
+            document.getElementById('addAccessoryModal').querySelector('h2').textContent = 'Add Accessory';
+            delete document.getElementById('addAccessoryModal').dataset.editId;
+            document.getElementById('modelFile').setAttribute('required', 'required');
+            document.getElementById('accessoryName').value = '';
+            document.getElementById('accessoryType').value = '';
+            document.getElementById('accessoryPrice').value = '';
+            document.getElementById('accessorySlot').value = '';
+            document.getElementById('modelFile').value = '';
+            document.getElementById('textureFile').value = '';
+            document.getElementById('mtlFile').value = '';
+            document.getElementById('iconFile').value = '';
+        }
+
+        function closeAddAccessoryModal(){
+            document.getElementById('addAccessoryModal').style.display = 'none';
+            document.getElementById('accessoryName').value = '';
+            document.getElementById('accessoryType').value = '';
+            document.getElementById('accessoryPrice').value = '';
+            document.getElementById('accessorySlot').value = '';
+            document.getElementById('modelFile').value = '';
+            document.getElementById('textureFile').value = '';
+            document.getElementById('mtlFile').value = '';
+            document.getElementById('iconFile').value = '';
+        }
+
+        async function uploadAccessory(){
+            await loadAccessories();
+            const name = document.getElementById('accessoryName').value;
+            const type = document.getElementById('accessoryType').value;
+            const price = document.getElementById('accessoryPrice').value;
+            const slot = document.getElementById('accessorySlot').value;
+            const modelFile = document.getElementById('modelFile').files[0];
+
+            const modal = document.getElementById('addAccessoryModal');
+            const editId = modal.dataset.editId;
+            const isEdit = !!editId;
+
+            if (!name || !type || !price || !slot){
+                showNotification('Please fill in all required fields', "error");
+                return;
+            }
+
+            if (!isEdit && !modelFile){
+                showNotification('Model file is required for new accessories', "error");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('session_token', sessionToken);
+
+            if (isEdit){
+                formData.append('accessory_id', editId);
+            }
+
+            formData.append('name', name);
+            formData.append('type', type);
+            formData.append('price', price);
+            formData.append('equip_slot', slot);
+
+            if (modelFile){
+                formData.append('model', modelFile);
+            }
+            if (document.getElementById('textureFile').files[0]){
+                formData.append('texture', document.getElementById('textureFile').files[0]);
+            }
+            if (document.getElementById('mtlFile').files[0]){
+                formData.append('mtl', document.getElementById('mtlFile').files[0]);
+            }
+            if (document.getElementById('iconFile').files[0]){
+                formData.append('icon', document.getElementById('iconFile').files[0]);
+            }
+
+            const endpoint = isEdit ? '/dashboard/accessories/update' : '/dashboard/accessories/add';
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success){
+                    if (isEdit){
+                        showNotification("Accessory updated successfully")
+                    }else{
+                        showNotification("Accessory added successfully")
+                    }
+                    closeAddAccessoryModal();
+                    await loadAccessories();
+                } else {
+                    showNotification('Failed: ' + (data.error || 'Unknown error'), "error");
+                }
+            } catch (error){
+                showNotification('Error: ' + error.message, "error");
+            }
+        }
+
+        async function deleteAccessory(accessoryId){
+            if (!confirm('Are you sure you want to delete this accessory?')) return;
+
+            try {
+                const response = await fetch('/dashboard/accessories/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_token: sessionToken,
+                        accessory_id: accessoryId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success){
+                    showNotification('Accessory deleted successfully');
+                    await loadAccessories();
+                } else {
+                    showNotification('Failed to delete accessory', "error");
+                }
+            } catch (error){
+                showNotification('Error deleting accessory: ' + error.message, "error");
+            }
+        }
+
+        function showMessageModal(){
+            document.getElementById('messageModal').style.display = 'block';
+            updateMessageForm();
+        }
+
+        function closeMessageModal(){
+            document.getElementById('messageModal').style.display = 'none';
+        }
+
+        function updateMessageForm(){
+            const type = document.getElementById('messageType').value;
+            const container = document.getElementById('messageFormFields');
+
+            if (type === 'Message'){
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label>Message</label>
+                        <textarea id="messageText" placeholder="Enter your message"></textarea>
+                    </div>
+                `;
+            } else if (type === 'GlobalWeather'){
+                const options = weatherTypes.map(w => `<option value="${w}">${w}</option>`).join('');
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label>Weather</label>
+                        <select id="weatherSelect">${options}</select>
+                    </div>
+                `;
+            }
+        }
+
+        async function sendGlobalMessage(){
+            const type = document.getElementById('messageType').value;
+            let properties = {};
+
+            if (type === 'Message'){
+                properties.message = document.getElementById('messageText').value;
+            } else if (type === 'GlobalWeather'){
+                properties.weather = document.getElementById('weatherSelect').value;
+            }
+
+            try {
+                const response = await fetch('/dashboard/send_message', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_token: sessionToken,
+                        type: type,
+                        properties: properties
+                    })
+                });
+
+                if (response.ok){
+                    showNotification('Message sent successfully', 'success');
+                    closeMessageModal();
+                } else {
+                    showNotification('Failed to send message', 'error');
+                }
+            } catch (error){
+                showNotification('Connection error' + error.message, 'error');
+            }
+        }
+
+        async function toggleMaintenance(){
+            const enabled = !maintenanceMode;
+            const message = enabled ? prompt('Enter maintenance message:') || 'Server is under maintenance' : '';
+
+            try {
+                const response = await fetch('/dashboard/set_maintenance', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_token: sessionToken,
+                        enabled: enabled,
+                        message: message
+                    })
+                });
+
+                if (response.ok){
+                    maintenanceMode = enabled;
+                    updateMaintenanceUI();
+                    if (enabled){
+                        showNotification("Maintenance mode enabled")
+                    }else{
+                        showNotification("Maintenance mode disabled")
+                    }
+                } else {
+                    showNotification('Failed to toggle maintenance mode', "error");
+                }
+            } catch (error){
+                showNotification('Connection error' + error.message, "error");
+            }
+        }
+
+        function showWeatherModal(){
+            document.getElementById('weatherModal').style.display = 'block';
+        }
+
+        function closeWeatherModal(){
+            document.getElementById('weatherModal').style.display = 'none';
+            document.getElementById('newWeatherName').value = '';
+        }
+
+        async function addWeather(){
+            const name = document.getElementById('newWeatherName').value.trim();
+            if (!name) return;
+
+            try {
+                const response = await fetch('/dashboard/weather/add', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_token: sessionToken,
+                        weather_name: name
+                    })
+                });
+
+                if (response.ok){
+                    closeWeatherModal();
+                    refreshData();
+                } else {
+                    showNotification('Failed to add weather type', "error");
+                }
+            } catch (error){
+                showNotification('Connection error' + error.message, "error");
+            }
+        }
+
+        async function removeWeather(name){
+            if (!confirm(`Remove weather type "${name}"?`)) return;
+
+            try {
+                const response = await fetch('/dashboard/weather/remove', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_token: sessionToken,
+                        weather_name: name
+                    })
+                });
+
+                if (response.ok){
+                    refreshData();
+                } else {
+                    showNotification('Failed to remove weather type', "error");
+                }
+            } catch (error){
+                showNotification('Connection error' + error.message, "error");
+            }
+        }
+
+        document.getElementById('passwordInput').addEventListener('keypress', function(e){
+            if (e.key === 'Enter') login();
+        });
+    </script>
+</body>
+</html>
