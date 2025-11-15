@@ -124,12 +124,12 @@ async def verify_google_play_purchase(user_id: int, product_id: str, purchase_to
                 "error": {"code": "INVALID_PURCHASE_STATE", "message": "Purchase not completed"}
             }
 
-        consumption_state = result.get('consumptionState')
-        if consumption_state == 1:
-            return {
-                "success": False,
-                "error": {"code": "ALREADY_CONSUMED", "message": "Purchase already consumed"}
-            }
+        #consumption_state = result.get('consumptionState')
+        #if consumption_state == 1:
+        #    return {
+        #        "success": False,
+        #        "error": {"code": "ALREADY_CONSUMED", "message": "Purchase already consumed"}
+        #    }
 
         currency_amount = CURRENCY_PACKAGES[product_id]["amount"]
 
@@ -150,7 +150,7 @@ async def verify_google_play_purchase(user_id: int, product_id: str, purchase_to
             time.time()
         ))
 
-        asyncio.create_task(acknowledge_purchase_async(service, product_id, purchase_token))
+        asyncio.create_task(consume_purchase_async(service, product_id, purchase_token))
 
         return {
             "success": True,
@@ -181,6 +181,18 @@ async def acknowledge_purchase_async(service, product_id: str, purchase_token: s
         ).execute()
     except Exception as ack_error:
         print(f"Purchase acknowledgment failed (non-critical): {ack_error}")
+
+async def consume_purchase_async(service, product_id: str, purchase_token: str):
+    try:
+        await asyncio.sleep(0)
+        service.purchases().products().consume(
+            packageName=GOOGLE_PLAY_PACKAGE_NAME,
+            productId=product_id,
+            token=purchase_token
+        ).execute()
+        print(f"Successfully consumed purchase: {purchase_token}")
+    except Exception as consume_error:
+        print(f"Purchase consumption failed (non-critical): {consume_error}")
 
 ad_reward_cooldowns = {}
 AD_COOLDOWN_SECONDS = 30
