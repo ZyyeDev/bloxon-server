@@ -54,8 +54,9 @@ def generate_dashboard_password():
     return password
 
 def get_current_binary_version():
-    if os.path.exists(VERSION_FILE):
-        with open(VERSION_FILE, 'r') as f:
+    version_file = os.path.join(os.environ.get("VOLUME_PATH", "/mnt/volume/binaries/"), "version.txt")
+    if os.path.exists(version_file):
+        with open(version_file, 'r') as f:
             return f.read().strip()
     return "unknown"
 
@@ -63,10 +64,12 @@ def set_binary_version(version: str):
     with open(VERSION_FILE, 'w') as f:
         f.write(version)
 
-SERVER_PUBLIC_IP = get_server_ip()
+
 BASE_PORT = int(os.environ.get("PORT", 8080))
 VOLUME_PATH = os.environ.get("VOLUME_PATH", "/mnt/volume")
 BINARIES_DIR = os.environ.get("VOLUME_PATH", "/mnt/volume/binaries/")
+
+SERVER_PUBLIC_IP = get_server_ip()
 
 CACHE_TTL = ((60*60)*24)*30 # 1 month, srry for it being ugly
 DASHBOARD_CACHE_TTL = 10
