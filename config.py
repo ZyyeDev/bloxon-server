@@ -2,6 +2,9 @@ import os
 import socket
 import requests
 import secrets
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def get_public_ip():
     try:
@@ -93,7 +96,7 @@ if os.path.exists(VERSION_FILE):
         print(e)
 else:
     print("[WARNING] version file does not exist, this can be ignored")
-    
+
 
 MODELS_DIR = os.path.join(VOLUME_PATH, "models")
 ICONS_DIR = os.path.join(VOLUME_PATH, "icons")
