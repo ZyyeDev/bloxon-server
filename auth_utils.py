@@ -3,10 +3,10 @@ from collections import deque
 from database_manager import execute_query
 
 from config import (
-    SERVER_PUBLIC_IP,
     RATELIMIT_MAX,
     RATE_LIMIT_WINDOW,
-    CACHE_TTL
+    CACHE_TTL,
+    get_server_ip,
 )
 
 rateLimitDict = {}
@@ -17,7 +17,7 @@ CLEANUP_INTERVAL = 120
 last_cleanup = 0
 
 def isServerIp(clientIp):
-    server_ips = ["127.0.0.1", "::1", SERVER_PUBLIC_IP, "localhost"]
+    server_ips = ["127.0.0.1", "::1", get_server_ip(), "localhost"]
     if clientIp in server_ips:
         return True
     return False

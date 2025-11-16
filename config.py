@@ -71,7 +71,7 @@ BINARIES_DIR = os.environ.get("VOLUME_PATH", "/mnt/volume/binaries/")
 
 SERVER_PUBLIC_IP = get_server_ip()
 
-CACHE_TTL = ((60*60)*24)*30 # 1 month, srry for it being ugly
+CACHE_TTL = ((60*60)*24)*30 # 1 month, srry for it being ugly   
 DASHBOARD_CACHE_TTL = 10
 
 RATE_LIMIT_WINDOW = 15 # time for reset max requests
