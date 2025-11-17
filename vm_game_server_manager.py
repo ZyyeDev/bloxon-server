@@ -9,6 +9,7 @@ from typing import Dict, Set
 from aiohttp import web
 from config import get_public_ip, GODOT_SERVER_BIN, MAX_SERVERS_PER_VM
 import requests
+import traceback
 
 MASTER_SERVER_URL = os.environ.get("MASTER_SERVER_URL", f"http://{get_public_ip()}:8080") #os.environ.get("MASTER_SERVER_URL", "http://localhost:8080")
 VM_ID = os.environ.get("VM_ID", str(uuid.uuid4()))
@@ -35,7 +36,6 @@ def release_port(port: int):
     if port in used_ports:
         used_ports.remove(port)
 
-
 async def spawn_game_server(server_uid: str = None, port: int = None, owner_id: int = None):
     try:
         if port is None:
@@ -51,7 +51,7 @@ async def spawn_game_server(server_uid: str = None, port: int = None, owner_id: 
         server_type = "PRIVATE" if is_private else "PUBLIC"
         print(f"Spawning {server_type} game server {server_uid} on port {port}")
 
-        proc = await asyncio.create_subprocess_exec(
+        cmd = [
             "xvfb-run",
             "-a",
             "-s", "-screen 0 512x512x24",
@@ -61,12 +61,16 @@ async def spawn_game_server(server_uid: str = None, port: int = None, owner_id: 
             "--port", str(port),
             "--master", MASTER_SERVER_URL,
             "--uid", server_uid,
-            #stdout=asyncio.subprocess.PIPE,
-            #stderr=asyncio.subprocess.PIPE
-        )
+        ]
 
         if is_private:
-            proc.extend(["--private", "--owner", str(owner_id)])
+            cmd.extend(["--private", "--owner", str(owner_id)])
+
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
 
         game_server_processes[server_uid] = proc
         game_server_info[server_uid] = {
@@ -85,6 +89,7 @@ async def spawn_game_server(server_uid: str = None, port: int = None, owner_id: 
         return True
     except Exception as e:
         print(f"Failed to spawn game server {server_uid}: {e}")
+        traceback.print_exc()
         if port:
             release_port(port)
         return False
