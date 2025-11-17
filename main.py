@@ -671,6 +671,7 @@ async def requestServer(httpRequest):
                 master_vm = vm_registry[master_vm_id]
                 master_server_count = len(master_vm.get("servers", {}))
 
+
                 if master_server_count < MAX_SERVERS_IN_MASTER:
                     next_port = 9000 + master_server_count
                     server_uid = f"{master_vm_id}-{next_port}"
@@ -1695,36 +1696,6 @@ def shutdownHandler(signalNum, frameObj):
 signal.signal(signal.SIGINT, shutdownHandler)
 signal.signal(signal.SIGTERM, shutdownHandler)
 
-async def spawn_initial_local_servers():
-    await asyncio.sleep(5)
-    print("Spawning 2 local game servers on main VM...")
-
-    local_vm_id = f"main-{SERVER_PUBLIC_IP}"
-
-    async with vm_registry_lock:
-        if local_vm_id not in vm_registry:
-            vm_registry[local_vm_id] = {
-                "vm_id": local_vm_id,
-                "ip": SERVER_PUBLIC_IP,
-                "last_heartbeat": time.time(),
-                "servers": {},
-                "total_players": 0,
-                "status": "active",
-                "created": time.time()
-            }
-
-    from vm_game_server_manager import spawn_game_server
-    for i in range(2):
-        port = 9000 + i
-        server_uid = f"{local_vm_id}-{port}"
-        try:
-            success = await spawn_game_server(server_uid, port)
-            if success:
-                print(f"Spawned local server {i+1}/2 on port {port}")
-            await asyncio.sleep(3)
-        except Exception as e:
-            print(f"Failed to spawn local server on port {port}: {e}")
-
 async def startApp():
     os.makedirs(os.path.join(VOLUME_PATH, "pfps"), exist_ok=True)
     os.makedirs(os.path.join(VOLUME_PATH, "models"), exist_ok=True)
@@ -1761,12 +1732,12 @@ async def startApp():
         web.post("/auth/login", loginUser),
         web.post("/auth/validate", validateTokenEndpoint),
         web.post("/auth/register_with_captcha", registerUserWithCaptcha),
-        
+
         web.post("/datastore/set", setDatastore),
         web.post("/datastore/get", getDatastore),
         web.post("/datastore/remove", removeDatastore),
         web.post("/datastore/list_keys", listDatastoreKeys),
-        
+
         web.post("/heartbeat_client", heartbeatClient),
         web.post("/vm/heartbeat", vmHeartbeat),
 
@@ -1782,7 +1753,7 @@ async def startApp():
         web.post("/payments/ad_reward", processAdReward),
         web.get("/payments/packages", getCurrencyPackagesEndpoint),
         web.post("/payments/history", getPaymentHistory),
-        
+
         web.get("/dashboard", dashboardView),
         web.post("/api/dashboard", getDashboardData),
         web.post("/dashboard/login", dashboardLogin),
@@ -1801,7 +1772,7 @@ async def startApp():
 
         web.post("/captcha/generate", generateCaptcha),
         web.post("/captcha/verify", verifyCaptcha),
-        
+
         web.post("/moderation", moderationRun),
 
         web.post("/vm/startup_log", vmStartupLog),
