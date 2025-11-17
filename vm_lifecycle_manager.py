@@ -24,6 +24,30 @@ def get_vm_manager_script():
     except:
         return ""
 
+def get_config_script():
+    try:
+        with open("config.py", "r") as f:
+            config_content = f.read()
+
+        lines = config_content.split("\n")
+        filtered_lines = []
+
+        for line in lines:
+            if line.strip().startswith("SERVER_PUBLIC_IP"):
+                continue
+            filtered_lines.append(line)
+
+        return "\n".join(filtered_lines)
+    except:
+        return ""
+
+def get_env_content():
+    try:
+        with open(".env", "r") as f:
+            return f.read()
+    except:
+        return ""
+
 STARTUP_SCRIPT_TEMPLATE = """#!/bin/bash
 set -ex
 
@@ -37,7 +61,7 @@ log_to_master() {{
     # tried 3 different ways to escape json in bash
     # printf finally worked, not touching this again
     local payload=$(printf '{{"vm_id":"%s","message":"%s","access_key":"%s"}}' "$VM_ID" "$1" "$ACCESS_KEY")
-    
+
     curl -sS -X POST "$MASTER_URL/vm/startup_log" \
         -H "Content-Type: application/json" \
         -d "$payload" \
@@ -50,6 +74,11 @@ export DEBIAN_FRONTEND=noninteractive
 
 mkdir -p /root/game-server
 cd /root/game-server
+
+VM_PUBLIC_IP=$(curl -s https://api.ipify.org)
+if [ -z "$VM_PUBLIC_IP" ]; then
+    VM_PUBLIC_IP=$(curl -s https://icanhazip.com)
+fi
 
 log_to_master "Downloading binary and installing packages" &
 
@@ -78,7 +107,7 @@ DOWNLOAD_PID=$!
 wait $APT_PID
 apt-get install -y -qq python3 python3-pip xvfb libgl1-mesa-dev libglu1-mesa-dev curl wget > /dev/null 2>&1
 
-pip3 install -q aiohttp requests psutil
+pip3 install -q aiohttp requests psutil python-dotenv cryptography
 
 wait $DOWNLOAD_PID
 
@@ -94,32 +123,17 @@ cat > vm_game_server_manager.py << 'EOFPY'
 EOFPY
 
 cat > config.py << 'EOFCONFIG'
-import os
-SERVER_PUBLIC_IP = "{vm_ip}"
-BASE_PORT = 8080
-VOLUME_PATH = "/root/game-server"
-BINARIES_DIR = "/root/game-server"
-MAX_SERVERS_PER_VM = {max_servers}
-GODOT_SERVER_BIN = "/root/game-server/server.x86_64"
-DATASTORE_PASSWORD = "{access_key}"
-CURRENT_SERVER_VERSION = "1.0.0"
-VERSION_FILE = os.path.join(BINARIES_DIR, "version.txt")
-
-def get_public_ip():
-    return SERVER_PUBLIC_IP
-
-def get_local_ip():
-    return SERVER_PUBLIC_IP
-
-def get_server_ip():
-    return SERVER_PUBLIC_IP
+{config_code}
 EOFCONFIG
 
-export MASTER_SERVER_URL="$MASTER_URL"
-export VM_ID="$VM_ID"
-export GODOT_SERVER_BIN="/root/game-server/server.x86_64"
-export MAX_SERVERS_PER_VM="{max_servers}"
-export VOLUME_PATH="/root/game-server"
+# add SERVER_PUBLIC_IP to config.py with the vms actuall ip
+echo "" >> config.py
+echo "# VM-specific configuration" >> config.py
+echo "SERVER_PUBLIC_IP = '$VM_PUBLIC_IP'" >> config.py
+
+cat > .env << 'EOFENV'
+{env_content}
+EOFENV
 
 log_to_master "Starting VM manager"
 
@@ -180,6 +194,14 @@ def create_vm(vm_id: str, master_server_url: str) -> Optional[Dict]:
         if not vm_manager_code:
             print("ERROR: Could not load vm_game_server_manager.py")
             return None
+        config_code = get_config_script()
+        if not config_code:
+            print("ERROR: Could not load config.py")
+            return None
+        env_content = get_env_content()
+        if not env_content:
+            print("ERROR: Could not load .env")
+            return None
 
         print(f"Creating VM {vm_id[:8]}...")
 
@@ -188,6 +210,8 @@ def create_vm(vm_id: str, master_server_url: str) -> Optional[Dict]:
             vm_id=vm_id,
             access_key=DATASTORE_PASSWORD,
             vm_manager_code=vm_manager_code,
+            config_code=config_code,
+            env_content=env_content,
             max_servers=MAX_SERVERS_PER_VM,
             vm_ip="$(/usr/bin/curl -s https://api.ipify.org)"
         )
@@ -463,7 +487,9 @@ async def register_vm_heartbeat(vm_id: str, server_stats: List[Dict]) -> Dict:
                     "port": server.get("port"),
                     "player_count": player_count,
                     "status": server.get("status", "unknown"),
-                    "last_heartbeat": time.time()
+                    "last_heartbeat": time.time(),
+                    "owner_id": server.get("owner_id"),
+                    "private": server.get("private", False)
                 }
                 total_players += player_count
 

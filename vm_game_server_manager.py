@@ -65,6 +65,9 @@ async def spawn_game_server(server_uid: str = None, port: int = None, owner_id: 
             #stderr=asyncio.subprocess.PIPE
         )
 
+        if is_private:
+            proc.extend(["--private", "--owner", str(owner_id)])
+
         game_server_processes[server_uid] = proc
         game_server_info[server_uid] = {
             "port": port,
@@ -96,7 +99,7 @@ async def stop_game_server(server_uid: str, graceful: bool = True):
     if graceful:
         proc.terminate()
         try:
-            # wait 10 secs to give the server 
+            # wait 10 secs to give the server
             await asyncio.wait_for(proc.wait(), timeout=10.0)
         except asyncio.TimeoutError:
             proc.kill()
