@@ -197,6 +197,9 @@ async def consume_purchase_async(service, product_id: str, purchase_token: str):
 ad_reward_cooldowns = {}
 AD_COOLDOWN_SECONDS = 30
 
+# i was too lazy to make all the admob thing because i needed a dns and blah blah blah
+# ik this is very bad, but idc. Its a placeholder.
+# TODO: Make this more safe!!! (using admob api)
 async def verify_ad_reward(user_id: int, ad_network: str, ad_unit_id: str,
                     reward_amount: int = 10) -> Dict[str, Any]:
 
