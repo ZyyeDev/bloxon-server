@@ -1671,7 +1671,9 @@ async def downloadBinary(httpRequest):
         print(f"Unauthorized binary download attempt from {httpRequest.remote}")
         return web.json_response({"error": "unauthorized"}, status=403)
 
-    binary_path = os.path.join(BINARIES_DIR, "server.x86_64")
+    binary_path = GODOT_SERVER_BIN
+    if not os.path.exists(binary_path):
+        binary_path = os.path.join(BINARIES_DIR, "server.x86_64")
     print(f"Looking for binary at: {binary_path}, exists: {os.path.exists(binary_path)}")
 
     if not os.path.exists(binary_path):
