@@ -137,16 +137,18 @@ EOFENV
 
 log_to_master "Starting VM manager"
 
-python3 vm_game_server_manager.py > /var/log/vm-manager.log 2>&1 &
+nohup python3 vm_game_server_manager.py > /var/log/vm-manager.log 2>&1 &
+echo $! > /var/run/vm-manager.pid
 VM_PID=$!
 
-sleep 5
+sleep 3
 
-if ps -p $VM_PID > /dev/null; then
+if ps aux | grep -v grep | grep "vm_game_server_manager.py" > /dev/null; then
+    VM_PID=$(cat /var/run/vm-manager.pid)
     log_to_master "VM manager running (PID: $VM_PID)"
 else
     log_to_master "ERROR: VM manager failed to start"
-    tail -20 /var/log/vm-manager.log
+    cat /var/log/vm-manager.log
     exit 1
 fi
 
