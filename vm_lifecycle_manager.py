@@ -118,22 +118,19 @@ fi
 
 chmod +x server.x86_64
 
-cat > vm_game_server_manager.py << 'EOFPY'
-{vm_manager_code}
-EOFPY
+cat > config.py << EOFCONFIG
+SERVER_PUBLIC_IP = '$VM_PUBLIC_IP'
 
-cat > config.py << 'EOFCONFIG'
 {config_code}
 EOFCONFIG
-
-# add SERVER_PUBLIC_IP to config.py with the vms actuall ip
-echo "" >> config.py
-echo "# VM-specific configuration" >> config.py
-echo "SERVER_PUBLIC_IP = '$VM_PUBLIC_IP'" >> config.py
 
 cat > .env << 'EOFENV'
 {env_content}
 EOFENV
+
+cat > vm_game_server_manager.py << 'EOFPY'
+{vm_manager_code}
+EOFPY
 
 log_to_master "Starting VM manager"
 
