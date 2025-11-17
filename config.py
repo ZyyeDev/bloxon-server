@@ -37,6 +37,7 @@ def get_server_ip():
     if public_ip:
         return public_ip
 
+    print("[WARNING] USING LOCAL IP")
     return get_local_ip()
 
 def generate_dashboard_password():
@@ -71,14 +72,16 @@ BINARIES_DIR = os.environ.get("VOLUME_PATH", "/mnt/volume/binaries/")
 
 SERVER_PUBLIC_IP = get_server_ip()
 
-CACHE_TTL = ((60*60)*24)*30 # 1 month, srry for it being ugly   
+CACHE_TTL = ((60*60)*24)*30 # 1 month, srry for it being ugly
 DASHBOARD_CACHE_TTL = 10
 
 RATE_LIMIT_WINDOW = 15 # time for reset max requests
 RATELIMIT_MAX = 10000
 
-MAX_SERVERS_PER_VM = int(os.environ.get("MAX_SERVERS_PER_VM", "6"))
-MAX_SERVERS_IN_MASTER = int(os.environ.get("MAX_SERVERS_PER_VM", "4"))
+MAX_SERVERS_PER_VM = int(os.environ.get("MAX_SERVERS_PER_VM", 6))
+# limit servers on master vm to save some costs
+# set to 0 to disable it completly
+MAX_SERVERS_IN_MASTER = int(os.environ.get("MAX_SERVERS_PER_VM", 0))
 
 GODOT_SERVER_BIN = os.environ.get("GODOT_SERVER_BIN", "/mnt/volume/binaries/server.x86_64")
 
