@@ -73,6 +73,7 @@ log_to_master "VM startup initiated" &
 export DEBIAN_FRONTEND=noninteractive
 
 mkdir -p /root/game-server
+mkdir -p /mnt/volume/binaries
 cd /root/game-server
 
 VM_PUBLIC_IP=$(curl -s https://api.ipify.org)
@@ -82,19 +83,19 @@ fi
 
 log_to_master "Downloading binary and installing packages" &
 
-apt-get update -y -qq &
-APT_PID=$!
+(apt-get update -y -qq && apt-get install -y -qq python3 python3-pip xvfb libgl1-mesa-dev libglu1-mesa-dev curl wget > /dev/null 2>&1 && pip3 install -q aiohttp requests psutil python-dotenv cryptography) &
+INSTALL_PID=$!
 
 for i in {{1..5}}; do
     if curl -X POST "$MASTER_URL/download_binary" \
         -H "Content-Type: application/json" \
         -d "{{\\\"access_key\\\":\\\"$ACCESS_KEY\\\"}}" \
-        -o server.x86_64 \
+        -o /mnt/volume/binaries/server.x86_64 \
         --connect-timeout 30 \
         --max-time 300; then
 
-        if [ -f server.x86_64 ] && [ -s server.x86_64 ]; then
-            SIZE=$(stat -c%s server.x86_64)
+        if [ -f /mnt/volume/binaries/server.x86_64 ] && [ -s /mnt/volume/binaries/server.x86_64 ]; then
+            SIZE=$(stat -c%s /mnt/volume/binaries/server.x86_64)
             log_to_master "Binary downloaded: $SIZE bytes"
             break
         fi
@@ -104,19 +105,15 @@ for i in {{1..5}}; do
 done &
 DOWNLOAD_PID=$!
 
-wait $APT_PID
-apt-get install -y -qq python3 python3-pip xvfb libgl1-mesa-dev libglu1-mesa-dev curl wget > /dev/null 2>&1
-
-pip3 install -q aiohttp requests psutil python-dotenv cryptography
-
+wait $INSTALL_PID
 wait $DOWNLOAD_PID
 
-if [ ! -s server.x86_64 ]; then
+if [ ! -s /mnt/volume/binaries/server.x86_64 ]; then
     log_to_master "ERROR: Binary download failed"
     exit 1
 fi
 
-chmod +x server.x86_64
+chmod +x /mnt/volume/binaries/server.x86_64
 
 cat > config.py << EOFCONFIG
 SERVER_PUBLIC_IP = '$VM_PUBLIC_IP'
