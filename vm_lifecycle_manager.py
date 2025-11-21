@@ -83,7 +83,7 @@ fi
 
 log_to_master "Downloading binary and installing packages" &
 
-(apt-get update -y -qq && apt-get install -y -qq python3 python3-pip xvfb libgl1-mesa-dev libglu1-mesa-dev curl wget > /dev/null 2>&1 && pip3 install -q aiohttp requests psutil python-dotenv cryptography) &
+(apt-get update -y -qq && apt-get install -y -qq python3 python3-pip xvfb libgl1-mesa-dev libglu1-mesa-dev libx11-6 libxext6 libxrender1 curl wget > /dev/null 2>&1 && pip3 install -q aiohttp requests psutil python-dotenv cryptography) &
 INSTALL_PID=$!
 
 for i in {{1..5}}; do
@@ -130,6 +130,12 @@ cat > vm_game_server_manager.py << 'EOFPY'
 EOFPY
 
 log_to_master "Starting VM manager"
+
+# Test xvfb before starting
+if ! command -v xvfb-run &> /dev/null; then
+    log_to_master "ERROR: xvfb-run not found"
+    exit 1
+fi
 
 nohup python3 vm_game_server_manager.py > /var/log/vm-manager.log 2>&1 &
 echo $! > /var/run/vm-manager.pid
