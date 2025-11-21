@@ -24,6 +24,18 @@ pending_saves = set()
 pending_saves_lock = asyncio.Lock()
 used_ports = set()
 
+def log_to_master(message: str):
+    try:
+        access_key = os.environ.get("DATASTORE_PASSWORD", "@MEOW")
+        requests.post(
+            f"{MASTER_SERVER_URL}/vm/startup_log",
+            json={"vm_id": VM_ID, "message": message, "access_key": access_key},
+            timeout=3
+        )
+    except:
+        pass
+    print(f"[VM {VM_ID[:8]}] {message}")
+
 def get_next_available_port():
     for i in range(MAX_SERVERS_PER_VM):
         port = BASE_PORT + i
@@ -41,7 +53,7 @@ async def spawn_game_server(server_uid: str = None, port: int = None, owner_id: 
         if port is None:
             port = get_next_available_port()
             if port is None:
-                print(f"No available ports for new server")
+                log_to_master("No available ports for new server")
                 return False
 
         if server_uid is None:
@@ -49,21 +61,16 @@ async def spawn_game_server(server_uid: str = None, port: int = None, owner_id: 
 
         is_private = owner_id is not None
         server_type = "PRIVATE" if is_private else "PUBLIC"
-        print(f"Spawning {server_type} game server {server_uid} on port {port}")
+        log_to_master(f"Spawning {server_type} game server {server_uid} on port {port}")
 
         if not os.path.exists(GODOT_SERVER_BIN):
-            print(f"ERROR: Godot binary not found at {GODOT_SERVER_BIN}")
+            log_to_master(f"ERROR: Godot binary not found at {GODOT_SERVER_BIN}")
             return False
         
         if not os.access(GODOT_SERVER_BIN, os.X_OK):
-            print(f"ERROR: Godot binary is not executable")
+            log_to_master(f"ERROR: Godot binary is not executable, setting permissions...")
             os.chmod(GODOT_SERVER_BIN, 0o755)
-            print(f"Set executable permissions on binary")
-
         cmd = [
-            "xvfb-run",
-            "-a",
-            "-s", "-screen 0 512x512x24",
             GODOT_SERVER_BIN,
             "--headless",
             "--server",
@@ -75,7 +82,7 @@ async def spawn_game_server(server_uid: str = None, port: int = None, owner_id: 
         if is_private:
             cmd.extend(["--private", "--owner", str(owner_id)])
 
-        print(f"Executing command: {' '.join(cmd)}")
+        log_to_master(f"Executing command: {' '.join(cmd)}")
 
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -96,23 +103,28 @@ async def spawn_game_server(server_uid: str = None, port: int = None, owner_id: 
         await asyncio.sleep(3)
         
         if proc.returncode is not None:
-            print(f"ERROR: Process exited immediately with code {proc.returncode}")
+            log_to_master(f"ERROR: Process exited immediately with code {proc.returncode}")
             try:
-                stdout_data = await asyncio.wait_for(proc.stdout.read(1024), timeout=1)
-                stderr_data = await asyncio.wait_for(proc.stderr.read(1024), timeout=1)
-                print(f"STDOUT: {stdout_data.decode() if stdout_data else 'empty'}")
-                print(f"STDERR: {stderr_data.decode() if stderr_data else 'empty'}")
-            except:
-                pass
+                stdout_data = await asyncio.wait_for(proc.stdout.read(4096), timeout=2)
+                stderr_data = await asyncio.wait_for(proc.stderr.read(4096), timeout=2)
+                log_to_master(f"STDOUT: {stdout_data.decode() if stdout_data else 'empty'}")
+                log_to_master(f"STDERR: {stderr_data.decode() if stderr_data else 'empty'}")
+            except Exception as e:
+                log_to_master(f"Could not read process output: {e}")
+            
+            if server_uid in game_server_processes:
+                del game_server_processes[server_uid]
+            if server_uid in game_server_info:
+                del game_server_info[server_uid]
             if port:
                 release_port(port)
             return False
         
         game_server_info[server_uid]["status"] = "running"
-        print(f"Spawned {server_type} game server {server_uid} on port {port} with VM_ID {VM_ID}")
+        log_to_master(f"Spawned {server_type} game server {server_uid} on port {port}")
         return True
     except Exception as e:
-        print(f"Failed to spawn game server {server_uid}: {e}")
+        log_to_master(f"Failed to spawn game server {server_uid}: {e}")
         traceback.print_exc()
         if port:
             release_port(port)
@@ -169,7 +181,6 @@ async def heartbeat_to_master():
                 "total_players": sum(len(info["players"]) for info in game_server_info.values())
             }
 
-            print(f"Sending heartbeat to {MASTER_SERVER_URL}/vm/heartbeat")
             response = requests.post(
                 f"{MASTER_SERVER_URL}/vm/heartbeat",
                 json=payload,
@@ -322,25 +333,31 @@ async def spawn_server_endpoint(request):
         return web.json_response({"error": str(e)}, status=500)
 
 async def initial_server_spawn():
-    print("waiting")
+    log_to_master("Waiting 5 seconds before spawning initial server...")
     await asyncio.sleep(5)
 
-    print(f"Spawning initial game server...")
-    print(f"GODOT_SERVER_BIN: {GODOT_SERVER_BIN}")
-    print(f"Binary exists: {os.path.exists(GODOT_SERVER_BIN)}")
-    print(f"Binary executable: {os.access(GODOT_SERVER_BIN, os.X_OK) if os.path.exists(GODOT_SERVER_BIN) else 'N/A'}")
+    log_to_master(f"Spawning initial game server...")
+    log_to_master(f"GODOT_SERVER_BIN: {GODOT_SERVER_BIN}")
+    log_to_master(f"Binary exists: {os.path.exists(GODOT_SERVER_BIN)}")
+    
+    if os.path.exists(GODOT_SERVER_BIN):
+        log_to_master(f"Binary executable: {os.access(GODOT_SERVER_BIN, os.X_OK)}")
+        log_to_master(f"Binary size: {os.path.getsize(GODOT_SERVER_BIN)} bytes")
+    else:
+        log_to_master("ERROR: Binary does not exist!")
+        return
     
     port = get_next_available_port()
     if port:
         server_uid = f"{VM_ID}-{port}"
-        print(f"Attempting to spawn server {server_uid} on port {port}")
+        log_to_master(f"Attempting to spawn server {server_uid} on port {port}")
         success = await spawn_game_server(server_uid, port)
         if success:
-            print(f"Initial server spawned successfully on port {port}")
+            log_to_master(f"Initial server spawned successfully on port {port}")
         else:
-            print(f"Failed to spawn initial server")
+            log_to_master(f"Failed to spawn initial server")
     else:
-        print(f"No available port for initial server")
+        log_to_master(f"No available port for initial server")
 
 async def start_vm_manager():
     app = web.Application()

@@ -131,11 +131,14 @@ EOFPY
 
 log_to_master "Starting VM manager"
 
-# Test xvfb before starting
 if ! command -v xvfb-run &> /dev/null; then
     log_to_master "ERROR: xvfb-run not found"
     exit 1
 fi
+
+export MASTER_SERVER_URL="$MASTER_URL"
+export VM_ID="$VM_ID"
+export DATASTORE_PASSWORD="$ACCESS_KEY"
 
 nohup python3 vm_game_server_manager.py > /var/log/vm-manager.log 2>&1 &
 echo $! > /var/run/vm-manager.pid
