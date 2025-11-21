@@ -81,7 +81,7 @@ RATELIMIT_MAX = 10000
 MAX_SERVERS_PER_VM = int(os.environ.get("MAX_SERVERS_PER_VM", 6))
 # limit servers on master vm to save some costs
 # set to 0 to disable it completly
-MAX_SERVERS_IN_MASTER = int(os.environ.get("MAX_SERVERS_IN_MASTER", 4))
+MAX_SERVERS_IN_MASTER = int(os.environ.get("MAX_SERVERS_IN_MASTER", 0))
 
 GODOT_SERVER_BIN = os.environ.get("GODOT_SERVER_BIN", "/mnt/volume/binaries/server.x86_64")
 
