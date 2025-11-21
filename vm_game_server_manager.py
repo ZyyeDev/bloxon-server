@@ -104,7 +104,7 @@ async def stop_game_server(server_uid: str, graceful: bool = True):
     if graceful:
         proc.terminate()
         try:
-            # wait 10 secs to give the server
+            # wait 10 secs to give the server to to save everything
             await asyncio.wait_for(proc.wait(), timeout=10.0)
         except asyncio.TimeoutError:
             proc.kill()
