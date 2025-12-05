@@ -7,12 +7,14 @@ echo "=== Game Master Server Deployment ==="
 git fetch origin main
 git reset --hard origin/main
 
+echo "Downloading dependencies..."
+pip install -r requirements.txt
+sudo apt-get install -y xvfb
+
 echo "Starting Xvfb display server..."
 Xvfb :99 -screen 0 1024x768x24 +extension GLX &
 XVFB_PID=$!
 export DISPLAY=:99
-
-sleep 2
 
 source .env
 
