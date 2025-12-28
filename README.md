@@ -91,7 +91,7 @@ Save the dashboard password printed during the first run.
 
 ## How it works
 
-(add diagram pls)
+![diagram](./imgs/diagram.png)
 
 # Admin Dashboard
 
