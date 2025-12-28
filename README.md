@@ -8,18 +8,15 @@ Backend for [Bloxon](https://github.com/ZyyeDev/bloxon) - this wasn't really mea
 - Avatar customization + shop for accessories
 - Virtual currency with Google Play payments
 - Friends system (add people, join their servers)
-- Private servers you can rent
+- Private servers you can rent (not implemented in client yet)
 - Moderation system
 - WebSocket messages for broadcasts
 - Admin dashboard to manage everything
-- Auto-generates profile pictures using Godot
 - Handles payments and ad rewards
 
-## Setup
+### How to set up
 
-**Note:** This is designed to work with the [Bloxon game client](https://github.com/ZyyeDev/bloxon). You'll need both to actually run the full game.
-
-### Easy way (on Hetzner)
+**Make sure you're using [Hetzner](https://www.hetzner.com/)**
 
 1. Clone it:
 ```bash
@@ -38,41 +35,25 @@ nano .env
 chmod +x deploy.sh
 ./deploy.sh
 ```
+Save the dashboard password printed during the first run.
 
-4. Upload your server binary thru the dashboard on http://server-ip:8080/dashboard
+4. Configure the client:
+   In the client project, duplicate `config.json.example`, rename it to `config.json`, and set the server ip to your backend's ip address:
 
-
-Done. It sets up everything else automatically.
-
-### Manual setup
-
-If you want to do it yourself:
-
-1. Install requirements:
-```bash
-pip install -r requirements.txt
+```json
+{
+  "ip": "YOUR_SERVER_IP"
+}
 ```
 
-2. Make the directories:
-```bash
-mkdir -p /mnt/volume/{pfps,models,accessories,icons,database,backups,binaries}
-```
+5. Upload your server binary thru the dashboard on http://SERVER_IP:8080/dashboard
 
-3. Configure `.env` (check `.env.example` for what you need)
-
-4. Start it:
-```bash
-python main.py
-```
-
-5. Upload your server binary thru the dashboard on http://server-ip:8080/dashboard
-
-Server runs on `http://0.0.0.0:8080`
+**Done.**
 
 ## API stuff
 
 ### Auth
-- `POST /auth/register` - make account (has CAPTCHA after first one from your IP)
+- `POST /auth/register` - make account
 - `POST /auth/login` - login, get token
 - `POST /auth/validate` - check if token still works
 
@@ -104,7 +85,7 @@ Server runs on `http://0.0.0.0:8080`
 - `POST /friends/join_server` - join friend's server
 
 ### Private Servers
-- `POST /private_server/subscribe` - rent private server (250 currency for 30 days)
+- `POST /private_server/subscribe` - rent private server
 - `POST /private_server/cancel` - cancel subscription
 - `POST /private_server/status` - check if you have one active
 
@@ -118,10 +99,4 @@ Go to `http://your-server:8080/dashboard`
 
 Password gets auto-generated on first run, saved in `server_data/dashboard.pwd`
 
-You can:
-- See live stats for servers and VMs
-- Give a player currency
-- Upload/manage accessories for the shop
-- Send messages to everyone
-- Turn on maintenance mode
-- Check system resources 
+![dashnoard](./imgs/dashboard.png)
